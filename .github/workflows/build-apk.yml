@@ -1,4 +1,4 @@
-name: Build MancsBot KITT APK
+name: Build MancsBot KITT AI APK
 
 on:
   workflow_dispatch:
@@ -23,42 +23,44 @@ jobs:
           unzip -q MancsBot-KITT-Android-source.zip -d work
           test -f work/MancsBot-KITT-Android/app/build.gradle
 
-      - name: Patch Android backend routing
+      - name: Build AI Strategy Lab frontend
+        working-directory: ai-web
+        run: |
+          npm install
+          npm run build
+
+      - name: Install AI frontend into Android assets
+        run: |
+          rm -rf work/MancsBot-KITT-Android/app/src/main/assets/www
+          mkdir -p work/MancsBot-KITT-Android/app/src/main/assets/www
+          cp -R ai-web/dist/. work/MancsBot-KITT-Android/app/src/main/assets/www/
+          test -f work/MancsBot-KITT-Android/app/src/main/assets/www/index.html
+
+      - name: Use conflict-free AI application id
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          assets = Path("work/MancsBot-KITT-Android/app/src/main/assets/www/assets")
-          files = list(assets.glob("index-*.js"))
-          if not files:
-              raise SystemExit("Compiled frontend JavaScript not found")
+          gradle = Path("work/MancsBot-KITT-Android/app/build.gradle")
+          text = gradle.read_text(encoding="utf-8")
+          text = text.replace("applicationId 'hu.nagydaniel.mancsbot'", "applicationId 'hu.nagydaniel.mancsbot.ai'")
+          text = text.replace("versionCode 1", "versionCode 3")
+          text = text.replace("versionCode 2", "versionCode 3")
+          text = text.replace("versionName '1.0'", "versionName '1.2.0-ai'")
+          text = text.replace("versionName '1.1.0-ai'", "versionName '1.2.0-ai'")
+          gradle.write_text(text, encoding="utf-8")
 
-          changed = 0
-          for path in files:
-              text = path.read_text(encoding="utf-8")
-
-              old_api = 'const Go="/api/bot"'
-              new_api = 'const Go=((window.KittAndroid&&window.KittAndroid.getBackendBase&&window.KittAndroid.getBackendBase())||"")+"/api/bot"'
-              if old_api in text:
-                  text = text.replace(old_api, new_api, 1)
-                  changed += 1
-
-              old_backup = 'window.location.href="/api/backup/download"'
-              new_backup = 'window.location.href=((window.KittAndroid&&window.KittAndroid.getBackendBase&&window.KittAndroid.getBackendBase())||"")+"/api/backup/download"'
-              if old_backup in text:
-                  text = text.replace(old_backup, new_backup, 1)
-                  changed += 1
-
-              path.write_text(text, encoding="utf-8")
-
-          if changed < 2:
-              raise SystemExit(f"Expected 2 frontend patches, applied {changed}")
-
-          print(f"Applied {changed} Android backend patches")
+          manifest = Path("work/MancsBot-KITT-Android/app/src/main/AndroidManifest.xml")
+          m = manifest.read_text(encoding="utf-8")
+          m = m.replace('android:name=".MainActivity"', 'android:name="hu.nagydaniel.mancsbot.MainActivity"')
+          m = m.replace('android:label="MancsBot KITT"', 'android:label="MancsBot KITT AI"')
+          manifest.write_text(m, encoding="utf-8")
           PY
 
-      - name: Verify author and legal splash
+      - name: Verify package and author
         run: |
+          grep -q "applicationId 'hu.nagydaniel.mancsbot.ai'" work/MancsBot-KITT-Android/app/build.gradle
+          grep -q 'android:name="hu.nagydaniel.mancsbot.MainActivity"' work/MancsBot-KITT-Android/app/src/main/AndroidManifest.xml
           grep -q "Készítette: Nagy Dániel" work/MancsBot-KITT-Android/app/src/main/java/hu/nagydaniel/mancsbot/MainActivity.java
           grep -q "Minden jog fenntartva" work/MancsBot-KITT-Android/app/src/main/java/hu/nagydaniel/mancsbot/MainActivity.java
 
@@ -85,11 +87,11 @@ jobs:
 
       - name: Rename APK
         run: |
-          cp work/MancsBot-KITT-Android/app/build/outputs/apk/debug/app-debug.apk MancsBot-KITT-Nagy-Daniel.apk
+          cp work/MancsBot-KITT-Android/app/build/outputs/apk/debug/app-debug.apk MancsBot-KITT-AI-Install-Fix.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MancsBot-KITT-Nagy-Daniel-APK
-          path: MancsBot-KITT-Nagy-Daniel.apk
+          name: MancsBot-KITT-AI-Install-Fix
+          path: MancsBot-KITT-AI-Install-Fix.apk
           if-no-files-found: error
