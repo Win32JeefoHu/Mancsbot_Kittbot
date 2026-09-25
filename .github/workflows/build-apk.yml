@@ -1,0 +1,92 @@
+name: Build MancsBot KITT APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack Android source
+        run: |
+          rm -rf work
+          mkdir -p work
+          unzip -q MancsBot-KITT-Android-source.zip -d work
+          test -f work/MancsBot-KITT-Android/app/build.gradle
+
+      - name: Patch Android backend routing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          assets = Path("work/MancsBot-KITT-Android/app/src/main/assets/www/assets")
+          files = list(assets.glob("index-*.js"))
+          if not files:
+              raise SystemExit("Compiled frontend JavaScript not found")
+
+          changed = 0
+          for path in files:
+              text = path.read_text(encoding="utf-8")
+
+              old_api = 'const Go="/api/bot"'
+              new_api = 'const Go=((window.KittAndroid&&window.KittAndroid.getBackendBase&&window.KittAndroid.getBackendBase())||"")+"/api/bot"'
+              if old_api in text:
+                  text = text.replace(old_api, new_api, 1)
+                  changed += 1
+
+              old_backup = 'window.location.href="/api/backup/download"'
+              new_backup = 'window.location.href=((window.KittAndroid&&window.KittAndroid.getBackendBase&&window.KittAndroid.getBackendBase())||"")+"/api/backup/download"'
+              if old_backup in text:
+                  text = text.replace(old_backup, new_backup, 1)
+                  changed += 1
+
+              path.write_text(text, encoding="utf-8")
+
+          if changed < 2:
+              raise SystemExit(f"Expected 2 frontend patches, applied {changed}")
+
+          print(f"Applied {changed} Android backend patches")
+          PY
+
+      - name: Verify author and legal splash
+        run: |
+          grep -q "Készítette: Nagy Dániel" work/MancsBot-KITT-Android/app/src/main/java/hu/nagydaniel/mancsbot/MainActivity.java
+          grep -q "Minden jog fenntartva" work/MancsBot-KITT-Android/app/src/main/java/hu/nagydaniel/mancsbot/MainActivity.java
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build debug APK
+        working-directory: work/MancsBot-KITT-Android
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: |
+          cp work/MancsBot-KITT-Android/app/build/outputs/apk/debug/app-debug.apk MancsBot-KITT-Nagy-Daniel.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MancsBot-KITT-Nagy-Daniel-APK
+          path: MancsBot-KITT-Nagy-Daniel.apk
+          if-no-files-found: error
