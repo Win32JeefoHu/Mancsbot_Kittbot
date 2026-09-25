@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+
 jobs:
   build-ai-apk:
     runs-on: ubuntu-latest
@@ -71,7 +74,24 @@ jobs:
         run: cp work/MancsBot-KITT-Android/app/build/outputs/apk/debug/app-debug.apk MancsBot-KITT-AI-Nagy-Daniel.apk
 
       - name: Upload APK artifact
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: MancsBot-KITT-AI-Nagy-Daniel-APK
           path: MancsBot-KITT-AI-Nagy-Daniel.apk
+
+      - name: Publish latest build metadata
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          mkdir -p dist
+          APK_SHA256="$(sha256sum MancsBot-KITT-AI-Nagy-Daniel.apk | awk '{print $1}')"
+          printf '{"run_id":"%s","artifact_id":"%s","artifact_url":"%s","sha256":"%s","source_commit":"%s"}\n' \
+            "$GITHUB_RUN_ID" "$ARTIFACT_ID" "$ARTIFACT_URL" "$APK_SHA256" "$GITHUB_SHA" > dist/latest-ai-build.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/latest-ai-build.json
+          git commit -m "Publish latest AI APK build metadata [skip ci]"
+          git push
