@@ -1,0 +1,15 @@
+{
+  "strategyName": "adaptive-rsi-ema",
+  "params": {
+    "buyScore": 75,
+    "sellScore": 35,
+    "rsiBuy": 35,
+    "rsiSell": 65
+  },
+  "risk": {
+    "tradeFraction": 0.02,
+    "cooldownMs": 120000,
+    "stopLossPct": 3,
+    "takeProfitPct": 4
+  }
+}
