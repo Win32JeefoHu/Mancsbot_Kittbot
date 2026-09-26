@@ -1,0 +1,39 @@
+name: Build KITT Web HUD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "ai-web/**"
+      - ".github/workflows/build-web.yml"
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build web dashboard
+        working-directory: ai-web
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Package web build
+        run: |
+          cd ai-web/dist
+          zip -qr ../../KITT-Web-HUD.zip .
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KITT-Web-HUD
+          path: KITT-Web-HUD.zip
+          if-no-files-found: error
