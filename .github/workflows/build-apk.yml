@@ -95,11 +95,9 @@ jobs:
 
           gradle = Path("work/MancsBot-KITT-Android/app/build.gradle")
           text = gradle.read_text(encoding="utf-8")
-          text = text.replace("applicationId 'hu.nagydaniel.mancsbot'", "applicationId 'hu.nagydaniel.mancsbot.ai'")
-          for n in ("1","2","3","4"):
-              text = text.replace(f"versionCode {n}", "versionCode 4")
-          for v in ("1.0","1.1.0-ai","1.2.0-ai"):
-              text = text.replace(f"versionName '{v}'", "versionName '1.3.0-widget'")
+          text = re.sub(r"applicationId\\s+['\"]hu\\.nagydaniel\\.mancsbot(?:\\.ai)?['\"]", "applicationId 'hu.nagydaniel.mancsbot.ai'", text)
+          text = re.sub(r"versionCode\\s+\\d+", "versionCode 4", text)
+          text = re.sub(r"versionName\\s+['\"][^'\"]+['\"]", "versionName '1.3.0-widget'", text)
           gradle.write_text(text, encoding="utf-8")
 
           manifest = Path("work/MancsBot-KITT-Android/app/src/main/AndroidManifest.xml")
@@ -111,9 +109,9 @@ jobs:
 
       - name: Verify package widget and author
         run: |
-          grep -q "applicationId 'hu.nagydaniel.mancsbot.ai'" work/MancsBot-KITT-Android/app/build.gradle
-          grep -q "versionCode 4" work/MancsBot-KITT-Android/app/build.gradle
-          grep -q "versionName '1.3.0-widget'" work/MancsBot-KITT-Android/app/build.gradle
+          grep -Eq "applicationId[[:space:]]+['\"]hu.nagydaniel.mancsbot.ai['\"]" work/MancsBot-KITT-Android/app/build.gradle
+          grep -Eq "versionCode[[:space:]]+4" work/MancsBot-KITT-Android/app/build.gradle
+          grep -Eq "versionName[[:space:]]+['\"]1.3.0-widget['\"]" work/MancsBot-KITT-Android/app/build.gradle
           grep -q 'android:name="hu.nagydaniel.mancsbot.MainActivity"' work/MancsBot-KITT-Android/app/src/main/AndroidManifest.xml
           grep -q "KittWidgetProvider" work/MancsBot-KITT-Android/app/src/main/AndroidManifest.xml
           grep -q "Készítette: Nagy Dániel" work/MancsBot-KITT-Android/app/src/main/java/hu/nagydaniel/mancsbot/MainActivity.java
