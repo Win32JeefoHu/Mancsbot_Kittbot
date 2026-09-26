@@ -92,6 +92,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           gradle = Path("work/MancsBot-KITT-Android/app/build.gradle")
           text = gradle.read_text(encoding="utf-8")
