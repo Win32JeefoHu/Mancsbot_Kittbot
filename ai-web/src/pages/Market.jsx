@@ -6,7 +6,7 @@ export default function Market({data}){
  const prices=data?.lastPrices||{},stats=data?.strategyStats||{},structure=data?.marketStructure||{},sp=structure.pairs||{},opt=structure.optimizer||{},lastOpt=opt.lastResult||{}
  return <div className="stack">
   <div className="hud-card intro-panel">
-   <span className="eyebrow">LIVE MARKET TELEMETRY · MARKET STRUCTURE v1.7.1</span>
+   <span className="eyebrow">LIVE MARKET TELEMETRY · MARKET STRUCTURE v1.7.1.1</span>
    <h2>Market Radar</h2>
    <p>Coinbase árfolyamok, aktív stratégia, multi-timeframe market structure, Support/Resistance zónák és Bounce/Breakout/Retest setupok.</p>
    <div className="metrics">
@@ -23,7 +23,7 @@ export default function Market({data}){
     <div className={i%4===3?'spark market-spark down':'spark market-spark'}><i/><i/><i/><i/><i/><i/><i/></div>
     <div className="metrics">
      <Metric label="Trend" value={m.trend||'WAIT'}/>
-     <Metric label="Setup" value={m.setup?(m.setup+' · '+String(m.score||0)+'/100'):'WAIT'}/>
+     <Metric label="Setup" value={m.setup?(m.setup+' · '+String(m.score||0)+'/100'):'WAIT'}/><Metric label="Threshold" value={m.threshold==null?'—':String(m.threshold)+'/100'}/>
      <Metric label="Signal" value={m.action||'WAIT'}/><Metric label="Structure threshold" value={m.scoreThreshold==null?(structure.scoreThreshold==null?'—':String(structure.scoreThreshold)+'/100'):String(m.scoreThreshold)+'/100'}/>
      <Metric label="Support" value={zoneText(m.support)}/>
      <Metric label="Resistance" value={zoneText(m.resistance)}/>
